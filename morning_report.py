@@ -790,8 +790,32 @@ def generate_morning_report():
 
     # Send to Telegram
     print("\nSending morning report...")
-    send_telegram_message(message)
-    print(f"✅ Morning report sent at {current_time.strftime('%H:%M:%S')}")
-
+    print(f"Message length: {len(message)} characters")
+    
+    # If message is too long, split it
+    if len(message) > 4000:  # Leave margin below 4096 limit
+        print("Message too long, splitting into parts...")
+        parts = []
+        current_part = ""
+        
+        for line in message.split('\n'):
+            if len(current_part) + len(line) + 1 > 4000:
+                parts.append(current_part)
+                current_part = line + '\n'
+            else:
+                current_part += line + '\n'
+        
+        if current_part:
+            parts.append(current_part)
+        
+        print(f"Sending {len(parts)} parts...")
+        for i, part in enumerate(parts):
+            send_telegram_message(part)
+            print(f"✅ Part {i+1}/{len(parts)} sent")
+            time.sleep(1)  # Delay between messages
+    else:
+        send_telegram_message(message)
+        print(f"✅ Morning report sent at {current_time.strftime('%H:%M:%S')}")
+        
 if __name__ == "__main__":
     generate_morning_report()
