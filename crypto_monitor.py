@@ -15,6 +15,12 @@ def send_telegram_message(message):
     }
 
     try:
+        # DEBUG: Print first 500 chars of message
+        print(f"DEBUG - First 500 chars of message:")
+        print(message[:500])
+        print(f"DEBUG - Last 500 chars:")
+        print(message[-500:])
+        
         response = requests.post(url, json=payload, timeout=10)
         print(f"Telegram API Response Status: {response.status_code}")
 
@@ -23,6 +29,14 @@ def send_telegram_message(message):
             return True
         else:
             print(f"❌ Telegram API error: {response.text}")
+            
+            # Try without HTML parsing as fallback
+            print("Trying without HTML parsing...")
+            payload['parse_mode'] = None
+            response2 = requests.post(url, json=payload, timeout=10)
+            if response2.status_code == 200:
+                print("✅ Sent without HTML formatting")
+                return True
             return False
     except Exception as e:
         print(f"❌ Error sending message: {e}")
