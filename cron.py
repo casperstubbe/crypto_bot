@@ -15,6 +15,11 @@ TIMEZONE = 'America/Montevideo'
 # Verify environment variables are loaded
 print(f"DEBUG at cron start: Token exists = {bool(os.environ.get('TELEGRAM_BOT_TOKEN'))}")
 print(f"DEBUG at cron start: Chat ID exists = {bool(os.environ.get('TELEGRAM_CHAT_ID'))}")
+# ADD THESE LINES:
+print(f"DEBUG: All env vars available:")
+for key in sorted(os.environ.keys())[:20]:  # Show first 20
+    print(f"  - {key}")
+print(f"DEBUG: Total env vars: {len(os.environ)}")
 
 def run_morning_report():
     print(f"\n{'='*70}")
