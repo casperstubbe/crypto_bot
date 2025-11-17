@@ -10,6 +10,16 @@ from config import *
 import time
 import requests
 
+# Infrastructure coins for monitoring
+INFRASTRUCTURE_COINS = {
+    'ethereum': 'ETH',
+    'solana': 'SOL',
+    'cardano': 'ADA',
+    'polkadot': 'DOT',
+    'avalanche-2': 'AVAX',
+    'internet-computer': 'ICP'
+}
+
 def get_l1_ratios():
     """Get all L1/BTC ratios with 7-day trends"""
     print("Fetching L1/BTC ratios...")
