@@ -18,6 +18,13 @@ def send_telegram_message(message):
     """Send message to Telegram with error handling"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
 
+  # DEBUG
+    print(f"DEBUG: TELEGRAM_BOT_TOKEN = {TELEGRAM_BOT_TOKEN[:10] if TELEGRAM_BOT_TOKEN else 'None'}...")
+    print(f"DEBUG: TELEGRAM_CHAT_ID = {TELEGRAM_CHAT_ID}")
+    print(f"DEBUG: Full URL = {f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'[:50]}...")
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    
     payload = {
         'chat_id': TELEGRAM_CHAT_ID,
         'text': message,
