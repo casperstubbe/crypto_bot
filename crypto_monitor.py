@@ -28,7 +28,7 @@ def send_telegram_message(message):
     payload = {
         'chat_id': TELEGRAM_CHAT_ID,
         'text': message,
-        'parse_mode': None  # Changed from 'HTML' - plain text works fine
+        'parse_mode': 'HTML'  # Changed from 'HTML' - plain text works fine
     }
 
     try:
