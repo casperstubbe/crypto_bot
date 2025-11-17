@@ -59,13 +59,3 @@ run_signal_checker()
 while True:
     schedule.run_pending()
     time.sleep(30)
-```
-
-**Key change:** Instead of `subprocess.run(['python3', 'signal_checker.py'])`, we now do `from signal_checker import check_all_signals` and call it directly.
-
-This means everything runs in the SAME process that Railway starts, which definitely has the environment variables.
-
-**Commit → Redeploy → Check logs for:**
-```
-DEBUG at cron start: Token exists = True
-DEBUG at cron start: Chat ID exists = True
