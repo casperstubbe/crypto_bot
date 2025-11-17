@@ -147,7 +147,7 @@ def generate_morning_report():
     message += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     message += f"₿ <b>Bitcoin:</b> ${btc_price:,.0f}\n"
-    message += f"   24h: {btc_24h_change:+.2f}%%% | 7d: {btc_7d_change:+.2f}%%% | 14d: {btc_14d_change:+.2f}%%%\n"
+    message += f"   24h: {btc_24h_change:+.2f}%% | 7d: {btc_7d_change:+.2f}%% | 14d: {btc_14d_change:+.2f}%%\n"
 
     # BTC indicators
     indicators = []
@@ -173,7 +173,7 @@ def generate_morning_report():
         indicators.append(f"{fg_emoji} F&G:{fg_value}")
 
     if btc_volume_vs_avg is not None:
-        indicators.append(f"💰 Vol:{btc_volume_vs_avg:+.0f}%%% vs 30d")
+        indicators.append(f"💰 Vol:{btc_volume_vs_avg:+.0f}%% vs 30d")
 
     message += f"   {' | '.join(indicators)}\n\n"
 
@@ -182,20 +182,20 @@ def generate_morning_report():
         btc_dom = market_context['btc_dominance']
         dom_signal = market_context['btc_dom_signal']
         dom_emoji = "🟢" if dom_signal == 'BUY' else "🔴" if dom_signal == 'SELL' else "🟡"
-        message += f"{dom_emoji} BTC.D: {btc_dom:.1f}%%% "
+        message += f"{dom_emoji} BTC.D: {btc_dom:.1f}%% "
 
     if market_context['eth_btc_ratio']:
         ratio = market_context['eth_btc_ratio']
         trend = market_context['eth_btc_trend']
         signal = market_context['eth_btc_signal']
         ratio_emoji = "🟢" if signal == 'BUY' else "🔴" if signal == 'SELL' else "🟡"
-        message += f"| {ratio_emoji} ETH/BTC: {ratio:.5f} ({trend:+.1f}%%% 7d) "
+        message += f"| {ratio_emoji} ETH/BTC: {ratio:.5f} ({trend:+.1f}%% 7d) "
 
     if market_context['alt_volume_share']:
         vol_share = market_context['alt_volume_share']
         vol_signal = market_context['alt_vol_signal']
         vol_emoji = "🟢" if vol_signal == 'BUY' else "🔴" if vol_signal == 'CAUTION' else "🟡"
-        message += f"| {vol_emoji} AltVol: {vol_share:.0f}%%%"
+        message += f"| {vol_emoji} AltVol: {vol_share:.0f}%%"
 
     message += "\n\n"
 
@@ -240,7 +240,7 @@ def generate_morning_report():
             else:
                 note = ""
 
-            message += f"{emoji} {symbol}: {ratio:.6f} ({trend:+.1f}%%% 7d){note}\n"
+            message += f"{emoji} {symbol}: {ratio:.6f} ({trend:+.1f}%% 7d){note}\n"
 
         message += "\n"
 
@@ -293,7 +293,7 @@ def generate_morning_report():
             else:
                 staking_status = "🔴 Weak"
 
-            message += f"• ETH Staking: {ratio}%%% ({staking_status})\n"
+            message += f"• ETH Staking: {ratio}%% ({staking_status})\n"
 
         message += "\n"
 
@@ -317,7 +317,7 @@ def generate_morning_report():
                 volume_str = f"${volume/1e6:.0f}M"
 
             emoji = "🔥" if percentage > 50 else "🟢" if percentage > 20 else "🟡"
-            message += f"{emoji} {symbol}: {volume_str} ({percentage}%%%)\n"
+            message += f"{emoji} {symbol}: {volume_str} ({percentage}%%)\n"
 
         message += "\n"
 
@@ -365,8 +365,8 @@ def generate_morning_report():
     if funding_data and oi_data:
         # Display funding rate
         message += f"<b>Funding Rate:</b> {funding_data['signal']}\n"
-        message += f"   Current: {funding_data['rate_pct']:.4f}%%% per 8hrs\n"
-        message += f"   Annualized: {funding_data['annualized_pct']:.1f}%%%\n"
+        message += f"   Current: {funding_data['rate_pct']:.4f}%% per 8hrs\n"
+        message += f"   Annualized: {funding_data['annualized_pct']:.1f}%%\n"
         message += f"   {funding_data['explanation']}\n\n"
 
         # Display open interest
@@ -402,7 +402,7 @@ def generate_morning_report():
     btc_90d_change = get_long_term_price_change('BTC', days=90)
 
     if btc_90d_change:
-        message += f"<b>BTC 90d baseline:</b> {btc_90d_change:+.2f}%%%\n\n"
+        message += f"<b>BTC 90d baseline:</b> {btc_90d_change:+.2f}%%\n\n"
 
         # Analyze all alts
         structural_results = []
@@ -434,7 +434,7 @@ def generate_morning_report():
         # Display compact summary
         if leaders:
             message += "🏆 <b>LEADERS</b> (Outperformed BTC):\n"
-            leader_list = [f"{r['symbol']} ({r['divergence']:+.0f}%%%)" for r in leaders[:5]]  # Top 5
+            leader_list = [f"{r['symbol']} ({r['divergence']:+.0f}%%)" for r in leaders[:5]]  # Top 5
             message += "   " + ", ".join(leader_list)
             if len(leaders) > 5:
                 message += f" +{len(leaders)-5} more"
@@ -450,7 +450,7 @@ def generate_morning_report():
 
         if laggards:
             message += "🚨 <b>LAGGARDS</b> (Underperformed BTC):\n"
-            laggard_list = [f"{r['symbol']} ({r['divergence']:+.0f}%%%)" for r in laggards[:5]]  # Bottom 5
+            laggard_list = [f"{r['symbol']} ({r['divergence']:+.0f}%%)" for r in laggards[:5]]  # Bottom 5
             message += "   " + ", ".join(laggard_list)
             if len(laggards) > 5:
                 message += f" +{len(laggards)-5} more"
@@ -554,7 +554,7 @@ def generate_morning_report():
 
         message += f"• DXY: {dxy_today:.2f} ({dxy_emoji_local} {dxy_interpretation})\n"
         if dxy_90d_ago:
-            message += f"   90d change: {dxy_90d_change:+.2f}%%% ({dxy_90d_trend})\n"
+            message += f"   90d change: {dxy_90d_change:+.2f}%% ({dxy_90d_trend})\n"
 
     # Real Yields
     if real_yield_value:
@@ -629,14 +629,14 @@ def generate_morning_report():
         else:
             yield_status = "🟡 Moderate"
 
-        message += f"• Real Yields: {real_yield_value:.2f}%%% ({yield_status})\n"
+        message += f"• Real Yields: {real_yield_value:.2f}%% ({yield_status})\n"
 
         # Show the forward premium if we have all data
         if backward_real_yield:
             if yield_spread > 0.5:
-                message += f"   ⚠️ Market pricing tighter conditions (+{yield_spread:.2f}%%% vs actual)\n"
+                message += f"   ⚠️ Market pricing tighter conditions (+{yield_spread:.2f}%% vs actual)\n"
             elif yield_spread < -0.5:
-                message += f"   ✅ Market pricing easier conditions ({yield_spread:.2f}%%% vs actual)\n"
+                message += f"   ✅ Market pricing easier conditions ({yield_spread:.2f}%% vs actual)\n"
 
 
 # ========== SECTION 3: FED & LIQUIDITY ==========
@@ -661,9 +661,9 @@ def generate_morning_report():
         else:
             rate_signal = "🟡 PAUSED"
 
-        message += f"<b>Fed Funds Rate:</b> {rate}%%% | {rate_signal}\n"
+        message += f"<b>Fed Funds Rate:</b> {rate}%% | {rate_signal}\n"
         if change != 0:
-            message += f"   Last change: {change:+.2f}%%%\n"
+            message += f"   Last change: {change:+.2f}%%\n"
         message += "\n"
 
     if balance_sheet:
