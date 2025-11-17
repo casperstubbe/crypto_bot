@@ -4,6 +4,16 @@ import pytz
 from config import *
 import time
 
+# DEBUG: Print environment variables (masked)
+import os
+print(f"DEBUG: Bot token exists: {bool(os.environ.get('TELEGRAM_BOT_TOKEN'))}")
+print(f"DEBUG: Chat ID exists: {bool(os.environ.get('TELEGRAM_CHAT_ID'))}")
+if os.environ.get('TELEGRAM_BOT_TOKEN'):
+    token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    print(f"DEBUG: Bot token starts with: {token[:10]}...")
+if os.environ.get('TELEGRAM_CHAT_ID'):
+    print(f"DEBUG: Chat ID: {os.environ.get('TELEGRAM_CHAT_ID')}")
+
 def send_telegram_message(message):
     """Send message to Telegram with error handling"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
