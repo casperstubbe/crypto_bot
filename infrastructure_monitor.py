@@ -1238,6 +1238,196 @@ def detect_scenario(ratios):
 
     return scenario, description, recommendation
 
+def get_funding_rate():
+    """Get BTC perpetual futures funding rate from Binance"""
+    print("Fetching funding rate...")
+    
+    try:
+        url = "https://fapi.binance.com/fapi/v1/premiumIndex"
+        params = {'symbol': 'BTCUSDT'}
+        
+        time.sleep(2)
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Funding rate (8-hour rate)
+            funding_rate = float(data.get('lastFundingRate', 0))
+            funding_pct = funding_rate * 100  # Convert to percentage
+            
+            # Annualized (3 fundings per day, 365 days)
+            annualized_pct = funding_pct * 3 * 365
+            
+            # Determine signal
+            if funding_pct >= 0.10:
+                signal = "🔴 EXTREME BULLISH"
+                explanation = "Danger zone - overleveraged longs"
+            elif funding_pct >= 0.08:
+                signal = "🟠 VERY HIGH"
+                explanation = "High long leverage - correction risk"
+            elif funding_pct >= 0.05:
+                signal = "🟡 HIGH"
+                explanation = "Moderate long bias"
+            elif funding_pct >= 0.01:
+                signal = "🟢 HEALTHY BULLISH"
+                explanation = "Normal bullish funding"
+            elif funding_pct >= -0.01:
+                signal = "⚪ NEUTRAL"
+                explanation = "Balanced market"
+            elif funding_pct >= -0.05:
+                signal = "🟢 HEALTHY BEARISH"
+                explanation = "Normal bearish funding"
+            elif funding_pct >= -0.08:
+                signal = "🟡 NEGATIVE"
+                explanation = "Moderate short bias"
+            elif funding_pct >= -0.10:
+                signal = "🟠 VERY NEGATIVE"
+                explanation = "High short leverage - squeeze risk"
+            else:
+                signal = "🔴 EXTREME BEARISH"
+                explanation = "Danger zone - overleveraged shorts"
+            
+            print(f"  ✅ Funding rate: {funding_pct:.4f}% per 8hrs")
+            
+            return {
+                'rate_pct': funding_pct,
+                'annualized_pct': annualized_pct,
+                'signal': signal,
+                'explanation': explanation
+            }
+        else:
+            print(f"  ❌ Binance funding API error: {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"  ❌ Error fetching funding rate: {e}")
+        return None
+
+def get_open_interest():
+    """Get BTC perpetual futures open interest from Binance"""
+    print("Fetching open interest...")
+    
+    try:
+        url = "https://fapi.binance.com/fapi/v1/openInterest"
+        params = {'symbol': 'BTCUSDT'}
+        
+        time.sleep(2)
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # OI in contracts (each contract = 1 BTC)
+            oi_contracts = float(data.get('openInterest', 0))
+            
+            # Get current BTC price to calculate USD value
+            price_url = "https://api.binance.com/api/v3/ticker/price"
+            price_params = {'symbol': 'BTCUSDT'}
+            
+            time.sleep(1)
+            price_response = requests.get(price_url, params=price_params, timeout=10)
+            
+            btc_price = 100000  # Fallback
+            if price_response.status_code == 200:
+                btc_price = float(price_response.json().get('price', 100000))
+            
+            # Calculate OI in billions
+            oi_usd = oi_contracts * btc_price
+            oi_billions = oi_usd / 1_000_000_000
+            
+            # Determine signal
+            if oi_billions >= 40:
+                signal = "🔴 EXTREME"
+                explanation = "Massive leverage - high volatility risk"
+            elif oi_billions >= 35:
+                signal = "🟠 VERY HIGH"
+                explanation = "Elevated leverage - watch for cascade"
+            elif oi_billions >= 30:
+                signal = "🟡 HIGH"
+                explanation = "Above average positioning"
+            elif oi_billions >= 20:
+                signal = "🟢 MODERATE"
+                explanation = "Healthy leverage levels"
+            else:
+                signal = "⚪ LOW"
+                explanation = "Low leverage - stable but boring"
+            
+            print(f"  ✅ Open interest: ${oi_billions:.2f}B")
+            
+            return {
+                'oi_billions': oi_billions,
+                'oi_contracts': oi_contracts,
+                'signal': signal,
+                'explanation': explanation
+            }
+        else:
+            print(f"  ❌ Binance OI API error: {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"  ❌ Error fetching open interest: {e}")
+        return None
+
+def interpret_leverage_conditions(funding_data, oi_data):
+    """
+    Combine funding rate + OI to interpret market leverage conditions
+    Based on Day 12 framework
+    """
+    if not funding_data or not oi_data:
+        return None
+    
+    funding_pct = funding_data['rate_pct']
+    oi_billions = oi_data['oi_billions']
+    
+    # Critical thresholds from Day 12
+    extreme_positive_funding = funding_pct >= 0.08
+    extreme_negative_funding = funding_pct <= -0.08
+    very_extreme_funding = abs(funding_pct) >= 0.10
+    high_oi = oi_billions >= 30
+    extreme_oi = oi_billions >= 35
+    
+    # Condition 1: Extreme positive funding + high OI = TOP RISK
+    if extreme_positive_funding and high_oi:
+        condition = "🔴 DANGER ZONE - TOP RISK"
+        action = "DO NOT BUY - Liquidation cascade imminent"
+        trade_signal = "Wait for flush to €85k-€90k BTC"
+        
+    # Condition 2: Extreme negative funding + high OI = BOTTOM OPPORTUNITY
+    elif extreme_negative_funding and high_oi:
+        condition = "🟢 OPPORTUNITY - BOTTOM SIGNAL"
+        action = "ACCUMULATE - Short squeeze likely"
+        trade_signal = "Deploy Finst ladder, watch for bounce"
+        
+    # Condition 3: Very extreme funding alone
+    elif very_extreme_funding:
+        if funding_pct > 0:
+            condition = "🟠 EXTREME BULLISH FUNDING"
+            action = "CAUTION - High correction risk"
+            trade_signal = "Reduce exposure, wait for reset"
+        else:
+            condition = "🟢 EXTREME BEARISH FUNDING"
+            action = "CONTRARIAN OPPORTUNITY"
+            trade_signal = "Shorts likely to be squeezed"
+            
+    # Condition 4: High OI but normal funding
+    elif high_oi and abs(funding_pct) < 0.05:
+        condition = "🟡 HIGH LEVERAGE - NEUTRAL BIAS"
+        action = "WATCH CLOSELY - Powder keg"
+        trade_signal = "Wait for funding to spike either direction"
+        
+    # Condition 5: Normal conditions
+    else:
+        condition = "🟢 HEALTHY MARKET"
+        action = "NORMAL CONDITIONS"
+        trade_signal = "Trade as usual"
+    
+    return {
+        'condition': condition,
+        'action': action,
+        'trade_signal': trade_signal
+    }
+
 def generate_infrastructure_report():
     """Generate and send infrastructure monitor report"""
 
