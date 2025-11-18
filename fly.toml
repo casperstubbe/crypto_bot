@@ -1,0 +1,14 @@
+app = "crypto-bot-casper"
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[processes]
+  worker = "python cron.py"
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
