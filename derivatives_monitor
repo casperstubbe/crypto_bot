@@ -11,6 +11,28 @@ from datetime import datetime
 
 # ========== OPEN INTEREST FUNCTIONS ==========
 
+def get_btc_price():
+    """Get current BTC price for OI conversion"""
+    try:
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {'ids': 'bitcoin', 'vs_currencies': 'usd'}
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            return response.json().get('bitcoin', {}).get('usd', 0)
+    except:
+        return 0
+
+def get_eth_price():
+    """Get current ETH price for OI conversion"""
+    try:
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {'ids': 'ethereum', 'vs_currencies': 'usd'}
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            return response.json().get('ethereum', {}).get('usd', 0)
+    except:
+        return 0
+
 def get_binance_oi(symbol='BTC'):
     """Get OI from Binance Futures"""
     try:
