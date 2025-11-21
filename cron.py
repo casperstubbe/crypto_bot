@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
 Cron scheduler for Railway
-Runs morning report (9 AM), evening report (6 PM)
-Signal checker runs continuously every 1 minute
+Runs:
+- Morning report (9 AM)
+- Evening report (6 PM)
+- Weekly report (Sunday 8 AM)
+- Signal checker (continuously every 1 minute)
+
+UPDATED: November 21, 2025 - Added weekly report scheduling
 """
 import schedule
 import time
@@ -15,7 +20,6 @@ TIMEZONE = 'America/Montevideo'
 # Verify environment variables are loaded
 print(f"DEBUG at cron start: Token exists = {bool(os.environ.get('TELEGRAM_BOT_TOKEN'))}")
 print(f"DEBUG at cron start: Chat ID exists = {bool(os.environ.get('TELEGRAM_CHAT_ID'))}")
-# ADD THESE LINES:
 print(f"\nDEBUG: Checking all environment variables:")
 print(f"Total env vars available: {len(os.environ)}")
 print("First 15 env var names:")
@@ -33,7 +37,6 @@ def run_morning_report():
     print(f"\n{'='*70}")
     print(f"Running MORNING REPORT at {datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}")
     print(f"{'='*70}")
-    # Import and run directly (same process = same environment)
     from morning_report import generate_morning_report
     generate_morning_report()
 
@@ -44,6 +47,13 @@ def run_evening_report():
     from evening_report import generate_evening_report
     generate_evening_report()
 
+def run_weekly_report():
+    print(f"\n{'='*70}")
+    print(f"Running WEEKLY REPORT at {datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}")
+    print(f"{'='*70}")
+    from weekly_report import generate_weekly_report
+    generate_weekly_report()
+
 def run_signal_checker():
     print(f"\n{'='*70}")
     print(f"Running SIGNAL CHECKER at {datetime.now(pytz.timezone(TIMEZONE)).strftime('%H:%M:%S')}")
@@ -51,16 +61,20 @@ def run_signal_checker():
     from signal_checker import check_all_signals
     check_all_signals()
 
-# Schedule jobs (Montevideo time)
+# Schedule daily jobs (Montevideo time)
 schedule.every().day.at("09:00").do(run_morning_report)
 schedule.every().day.at("18:00").do(run_evening_report)
+
+# Schedule weekly report (Sunday 8 AM Montevideo time)
+schedule.every().sunday.at("08:00").do(run_weekly_report)
 
 # Signal checker every 1 minute
 schedule.every(1).minutes.do(run_signal_checker)
 
 print("🤖 Bot scheduler started!")
-print("📅 Morning Report: 9 AM")
-print("📅 Evening Report: 6 PM")
+print("📅 Morning Report: 9 AM daily")
+print("📅 Evening Report: 6 PM daily")
+print("📅 Weekly Report: Sunday 8 AM")
 print("📅 Signals: Every 1 minute")
 print(f"🌍 Timezone: {TIMEZONE}")
 print("\nWaiting for scheduled tasks...\n")
