@@ -358,48 +358,48 @@ def generate_morning_report():
 
         message += "\n"
 
-    # ========== MACRO CONTEXT ==========
-        message += "━━━━━━━━━━━━━━━━━━━━\n"
-        message += "🌍 <b>MACRO CONTEXT</b>\n"
-        message += "━━━━━━━━━━━━━━━━━━━━\n\n"
+ # ========== MACRO CONTEXT ==========
+    message += "━━━━━━━━━━━━━━━━━━━━\n"
+    message += "🌍 <b>MACRO CONTEXT</b>\n"
+    message += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        # Get dollar indicators
-        print("Fetching macro context...")
-        dxy_data = get_dxy()
-        real_yields = get_real_yields()
+    # Get dollar indicators
+    print("Fetching macro context...")
+    dxy_data = get_dxy()
+    real_yields = get_real_yields()
 
-        if dxy_data:
-            eur_usd = dxy_data.get('eur_usd')
-            if eur_usd:
-                if eur_usd < 1.05:
-                    dollar_signal = "🔴 Strong $ (headwind)"
-                elif eur_usd > 1.10:
-                    dollar_signal = "🟢 Weak $ (tailwind)"
-                else:
-                    dollar_signal = "🟡 Neutral"
-                message += f"<b>Dollar:</b> EUR/USD {eur_usd:.4f} ({dollar_signal})\n"
+    if dxy_data:
+        eur_usd = dxy_data.get('eur_usd')
+        if eur_usd:
+            if eur_usd < 1.05:
+                dollar_signal = "🔴 Strong $ (headwind)"
+            elif eur_usd > 1.10:
+                dollar_signal = "🟢 Weak $ (tailwind)"
+            else:
+                dollar_signal = "🟡 Neutral"
+            message += f"<b>Dollar:</b> EUR/USD {eur_usd:.4f} ({dollar_signal})\n"
 
-        if real_yields:
-            yield_val = real_yields.get('value')
-            if yield_val:
-                if yield_val > 2.5:
-                    yield_signal = "🔴 High (pressure)"
-                elif yield_val < 1.5:
-                    yield_signal = "🟢 Low (bullish)"
-                else:
-                    yield_signal = "🟡 Moderate"
-                message += f"<b>Real Yields:</b> {yield_val:.2f}% ({yield_signal})\n"
+    if real_yields:
+        yield_val = real_yields.get('value')
+        if yield_val:
+            if yield_val > 2.5:
+                yield_signal = "🔴 High (pressure)"
+            elif yield_val < 1.5:
+                yield_signal = "🟢 Low (bullish)"
+            else:
+                yield_signal = "🟡 Moderate"
+            message += f"<b>Real Yields:</b> {yield_val:.2f}% ({yield_signal})\n"
 
-        # Gold divergence
-        if gold_btc_divergence:
-            if abs(gold_btc_divergence) > 3:
-                if gold_btc_divergence > 0:
-                    gold_signal = "🥇 Flight to safety active"
-                else:
-                    gold_signal = "₿ Risk-on confirmed"
-                message += f"<b>Gold/BTC:</b> {gold_btc_divergence:+.1f}% divergence ({gold_signal})\n"
+    # Gold divergence
+    if gold_btc_divergence:
+        if abs(gold_btc_divergence) > 3:
+            if gold_btc_divergence > 0:
+                gold_signal = "🥇 Flight to safety active"
+            else:
+                gold_signal = "₿ Risk-on confirmed"
+            message += f"<b>Gold/BTC:</b> {gold_btc_divergence:+.1f}% divergence ({gold_signal})\n"
 
-        message += "\n"
+    message += "\n"
     
     # ========== SECTION 6: CATALYSTS & ETF WAVES ==========
     has_catalysts = any(get_catalyst_marker(coin_id, days_ahead=30) for coin_id in CATALYSTS.keys())
