@@ -22,8 +22,8 @@ from divergence_reporter import (
     get_rsi_for_coin,
     get_volume_comparison,
     get_market_context,
-    get_long_term_price_change,
     calculate_structural_divergence
+    get_long_term_price_change,
 )
 
 from derivatives_monitor import (     # ← ADD THIS ENTIRE BLOCK
@@ -48,9 +48,6 @@ from infrastructure_monitor import (
     get_treasury_general_account,
     assess_liquidity_regime,
     detect_scenario,
-    get_funding_rate,           
-    get_open_interest,          
-    interpret_leverage_conditions, 
     INFRASTRUCTURE_COINS
 )
 
@@ -392,44 +389,6 @@ def generate_morning_report():
             message += "\n"
     else:
         message += "⚠️ ETF data unavailable\n\n"
-
-# ========== DERIVATIVES & LEVERAGE SECTION ==========
-    message += "━━━━━━━━━━━━━━━━━━━━\n"
-    message += "⚡ <b>DERIVATIVES MARKET</b>\n"
-    message += "━━━━━━━━━━━━━━━━━━━━\n\n"
-
-    print("Fetching funding rate and open interest...")
-    funding_data = get_funding_rate()
-    oi_data = get_open_interest()
-
-    if funding_data and oi_data:
-        # Display funding rate
-        message += f"<b>Funding Rate:</b> {funding_data['signal']}\n"
-        message += f"   Current: {funding_data['rate_pct']:.4f}%% per 8hrs\n"
-        message += f"   Annualized: {funding_data['annualized_pct']:.1f}%%\n"
-        message += f"   {funding_data['explanation']}\n\n"
-
-        # Display open interest
-        message += f"<b>Open Interest:</b> {oi_data['signal']}\n"
-        message += f"   Total: ${oi_data['oi_billions']:.2f}B\n"
-        message += f"   {oi_data['explanation']}\n\n"
-
-        # Combined interpretation
-        leverage_analysis = interpret_leverage_conditions(funding_data, oi_data)
-
-        if leverage_analysis:
-            message += f"<b>Market Condition:</b> {leverage_analysis['condition']}\n"
-            message += f"   💡 {leverage_analysis['action']}\n"
-            message += f"   🎯 {leverage_analysis['trade_signal']}\n\n"
-
-        # Educational context
-        message += "<i>📚 Context:</i>\n"
-        message += "<i>• High funding + high OI = overleveraged, flush risk</i>\n"
-        message += "<i>• Negative funding + high OI = shorts squeezed, bounce potential</i>\n"
-        message += "<i>• Low OI = stable but boring, wait for setup</i>\n\n"
-
-    else:
-        message += "⚠️ Derivatives data unavailable\n\n"
 
     # ========== 90-DAY STRUCTURAL DIVERGENCE ==========
     message += "━━━━━━━━━━━━━━━━━━━━\n"
