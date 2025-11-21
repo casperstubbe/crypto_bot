@@ -321,8 +321,13 @@ def check_alert_acceleration(candles, btc_price):
     period1_change = ((price_1period_ago - price_2periods_ago) / price_2periods_ago) * 100
     period2_change = ((btc_price - price_1period_ago) / price_1period_ago) * 100
 
-    # Calculate difference (absolute values to work for both up and down)
-    difference = abs(period2_change) - abs(period1_change)
+    # Measure total momentum shift, not just magnitude change
+    if (period1_change > 0 and period2_change > 0) or (period1_change < 0 and period2_change < 0):
+        # Same direction: measure acceleration
+        difference = abs(period2_change) - abs(period1_change)
+    else:
+        # Direction reversal: measure full swing
+        difference = abs(period2_change - period1_change)
 
     # Check if difference meets minimum threshold
     has_acceleration = difference >= ALERT_ACCELERATION_MIN_DIFF
