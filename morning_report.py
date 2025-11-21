@@ -26,6 +26,13 @@ from divergence_reporter import (
     calculate_structural_divergence
 )
 
+from derivatives_monitor import (     # ← ADD THIS ENTIRE BLOCK
+    get_aggregated_oi, 
+    get_aggregated_funding, 
+    interpret_oi, 
+    interpret_funding
+)
+
 from infrastructure_monitor import (
     get_l1_ratios,
     get_eth_gas_fees,
@@ -202,6 +209,8 @@ def generate_morning_report():
 
     message += "\n\n"
 
+
+    
     # ========== SECTION 3: INFRASTRUCTURE STATUS ==========
     message += "━━━━━━━━━━━━━━━━━━━━\n"
     message += "🏗️ <b>INFRASTRUCTURE STATUS</b>\n"
