@@ -187,9 +187,19 @@ def get_bitget_oi(symbol='BTC'):
 def get_aggregated_oi(symbol='BTC'):
     """
     Aggregate OI from all exchanges
-    Returns total OI and weighted 24h change
+    Returns total OI in USD and weighted 24h change
     """
     print(f"Fetching {symbol} Open Interest from all exchanges...")
+    
+    # Get current price for conversion
+    if symbol == 'BTC':
+        current_price = get_btc_price()
+    else:  # ETH
+        current_price = get_eth_price()
+    
+    if current_price == 0:
+        print(f"  ❌ Could not get {symbol} price for OI conversion")
+        return None
     
     exchanges = [
         get_binance_oi(symbol),
@@ -205,26 +215,26 @@ def get_aggregated_oi(symbol='BTC'):
         print(f"  ❌ No OI data available for {symbol}")
         return None
     
-    # Calculate totals
-    total_oi = sum(ex['oi'] for ex in valid_exchanges)
+    # Convert contracts to USD value
+    total_oi_usd = sum(ex['oi'] * current_price for ex in valid_exchanges)
     
     # Weighted average change (by OI size)
     exchanges_with_change = [ex for ex in valid_exchanges if ex['change_24h'] != 0]
     
     if len(exchanges_with_change) > 0:
         weighted_change = sum(
-            ex['change_24h'] * (ex['oi'] / total_oi) 
+            ex['change_24h'] * ((ex['oi'] * current_price) / total_oi_usd) 
             for ex in exchanges_with_change
         )
     else:
         weighted_change = 0
     
-    print(f"  ✅ {symbol} OI: ${total_oi/1e9:.2f}B from {len(valid_exchanges)} exchanges")
+    print(f"  ✅ {symbol} OI: ${total_oi_usd/1e9:.2f}B from {len(valid_exchanges)} exchanges")
     
     return {
         'symbol': symbol,
-        'total_oi': total_oi,
-        'total_oi_billions': total_oi / 1e9,
+        'total_oi': total_oi_usd,
+        'total_oi_billions': total_oi_usd / 1e9,
         'change_24h': weighted_change,
         'exchanges': valid_exchanges,
         'num_exchanges': len(valid_exchanges)
