@@ -1,0 +1,545 @@
+#!/usr/bin/env python3
+"""
+DERIVATIVES MONITOR
+Aggregate Open Interest and Funding Rates from multiple exchanges
+Exchanges: Binance, Bybit, OKX, Bitget
+"""
+
+import requests
+import time
+from datetime import datetime
+
+# ========== OPEN INTEREST FUNCTIONS ==========
+
+def get_binance_oi(symbol='BTC'):
+    """Get OI from Binance Futures"""
+    try:
+        # Convert symbol format
+        pair = f"{symbol}USDT"
+        
+        # Current OI
+        url = "https://fapi.binance.com/fapi/v1/openInterest"
+        params = {'symbol': pair}
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        current_oi = float(data['openInterest'])
+        
+        # Get 24h historical for change calculation
+        time.sleep(1)
+        url_hist = "https://fapi.binance.com/futures/data/openInterestHist"
+        params_hist = {
+            'symbol': pair,
+            'period': '5m',
+            'limit': 288  # 24 hours
+        }
+        
+        response_hist = requests.get(url_hist, params=params_hist, timeout=10)
+        if response_hist.status_code == 200:
+            hist_data = response_hist.json()
+            if len(hist_data) > 0:
+                oi_24h_ago = float(hist_data[0]['sumOpenInterest'])
+                change_24h = ((current_oi - oi_24h_ago) / oi_24h_ago) * 100 if oi_24h_ago > 0 else 0
+            else:
+                change_24h = 0
+        else:
+            change_24h = 0
+        
+        return {
+            'exchange': 'Binance',
+            'oi': current_oi,
+            'change_24h': change_24h
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Binance OI: {e}")
+        return None
+
+
+def get_bybit_oi(symbol='BTC'):
+    """Get OI from Bybit"""
+    try:
+        pair = f"{symbol}USDT"
+        
+        url = "https://api.bybit.com/v5/market/open-interest"
+        params = {
+            'category': 'linear',
+            'symbol': pair,
+            'intervalTime': '5m',
+            'limit': 288  # 24 hours
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['retCode'] != 0 or 'result' not in data or 'list' not in data['result']:
+            return None
+        
+        oi_data = data['result']['list']
+        if len(oi_data) == 0:
+            return None
+        
+        current_oi = float(oi_data[0]['openInterest'])
+        oi_24h_ago = float(oi_data[-1]['openInterest']) if len(oi_data) > 1 else current_oi
+        
+        change_24h = ((current_oi - oi_24h_ago) / oi_24h_ago) * 100 if oi_24h_ago > 0 else 0
+        
+        return {
+            'exchange': 'Bybit',
+            'oi': current_oi,
+            'change_24h': change_24h
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Bybit OI: {e}")
+        return None
+
+
+def get_okx_oi(symbol='BTC'):
+    """Get OI from OKX"""
+    try:
+        pair = f"{symbol}-USDT-SWAP"
+        
+        url = "https://www.okx.com/api/v5/public/open-interest"
+        params = {'instId': pair}
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['code'] != '0' or 'data' not in data or len(data['data']) == 0:
+            return None
+        
+        current_oi = float(data['data'][0]['oi'])
+        
+        # OKX doesn't provide historical OI easily, skip 24h change
+        return {
+            'exchange': 'OKX',
+            'oi': current_oi,
+            'change_24h': 0  # Not available
+        }
+        
+    except Exception as e:
+        print(f"Error fetching OKX OI: {e}")
+        return None
+
+
+def get_bitget_oi(symbol='BTC'):
+    """Get OI from Bitget"""
+    try:
+        pair = f"{symbol}USDT_UMCBL"
+        
+        url = "https://api.bitget.com/api/mix/v1/market/open-interest"
+        params = {
+            'symbol': pair,
+            'productType': 'umcbl'
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['code'] != '00000' or 'data' not in data:
+            return None
+        
+        current_oi = float(data['data']['amount'])
+        
+        return {
+            'exchange': 'Bitget',
+            'oi': current_oi,
+            'change_24h': 0  # Not available
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Bitget OI: {e}")
+        return None
+
+
+def get_aggregated_oi(symbol='BTC'):
+    """
+    Aggregate OI from all exchanges
+    Returns total OI and weighted 24h change
+    """
+    print(f"Fetching {symbol} Open Interest from all exchanges...")
+    
+    exchanges = [
+        get_binance_oi(symbol),
+        get_bybit_oi(symbol),
+        get_okx_oi(symbol),
+        get_bitget_oi(symbol)
+    ]
+    
+    # Filter out failed requests
+    valid_exchanges = [ex for ex in exchanges if ex is not None]
+    
+    if len(valid_exchanges) == 0:
+        print(f"  ❌ No OI data available for {symbol}")
+        return None
+    
+    # Calculate totals
+    total_oi = sum(ex['oi'] for ex in valid_exchanges)
+    
+    # Weighted average change (by OI size)
+    exchanges_with_change = [ex for ex in valid_exchanges if ex['change_24h'] != 0]
+    
+    if len(exchanges_with_change) > 0:
+        weighted_change = sum(
+            ex['change_24h'] * (ex['oi'] / total_oi) 
+            for ex in exchanges_with_change
+        )
+    else:
+        weighted_change = 0
+    
+    print(f"  ✅ {symbol} OI: ${total_oi/1e9:.2f}B from {len(valid_exchanges)} exchanges")
+    
+    return {
+        'symbol': symbol,
+        'total_oi': total_oi,
+        'total_oi_billions': total_oi / 1e9,
+        'change_24h': weighted_change,
+        'exchanges': valid_exchanges,
+        'num_exchanges': len(valid_exchanges)
+    }
+
+
+# ========== FUNDING RATE FUNCTIONS ==========
+
+def get_binance_funding(symbol='BTC'):
+    """Get funding rate from Binance"""
+    try:
+        pair = f"{symbol}USDT"
+        
+        url = "https://fapi.binance.com/fapi/v1/fundingRate"
+        params = {
+            'symbol': pair,
+            'limit': 21  # Last 7 days (3 per day)
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if len(data) == 0:
+            return None
+        
+        # Current funding rate (most recent)
+        current_rate = float(data[0]['fundingRate']) * 100  # Convert to %
+        
+        # 7-day average
+        rates_7d = [float(d['fundingRate']) * 100 for d in data]
+        avg_7d = sum(rates_7d) / len(rates_7d)
+        
+        return {
+            'exchange': 'Binance',
+            'current_rate': current_rate,
+            'avg_7d': avg_7d
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Binance funding: {e}")
+        return None
+
+
+def get_bybit_funding(symbol='BTC'):
+    """Get funding rate from Bybit"""
+    try:
+        pair = f"{symbol}USDT"
+        
+        url = "https://api.bybit.com/v5/market/funding/history"
+        params = {
+            'category': 'linear',
+            'symbol': pair,
+            'limit': 21
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['retCode'] != 0 or 'result' not in data or 'list' not in data['result']:
+            return None
+        
+        funding_data = data['result']['list']
+        if len(funding_data) == 0:
+            return None
+        
+        # Current rate
+        current_rate = float(funding_data[0]['fundingRate']) * 100
+        
+        # 7d average
+        rates_7d = [float(d['fundingRate']) * 100 for d in funding_data]
+        avg_7d = sum(rates_7d) / len(rates_7d)
+        
+        return {
+            'exchange': 'Bybit',
+            'current_rate': current_rate,
+            'avg_7d': avg_7d
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Bybit funding: {e}")
+        return None
+
+
+def get_okx_funding(symbol='BTC'):
+    """Get funding rate from OKX"""
+    try:
+        pair = f"{symbol}-USDT-SWAP"
+        
+        url = "https://www.okx.com/api/v5/public/funding-rate-history"
+        params = {
+            'instId': pair,
+            'limit': 21
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['code'] != '0' or 'data' not in data or len(data['data']) == 0:
+            return None
+        
+        # Current rate
+        current_rate = float(data['data'][0]['fundingRate']) * 100
+        
+        # 7d average
+        rates_7d = [float(d['fundingRate']) * 100 for d in data['data']]
+        avg_7d = sum(rates_7d) / len(rates_7d)
+        
+        return {
+            'exchange': 'OKX',
+            'current_rate': current_rate,
+            'avg_7d': avg_7d
+        }
+        
+    except Exception as e:
+        print(f"Error fetching OKX funding: {e}")
+        return None
+
+
+def get_bitget_funding(symbol='BTC'):
+    """Get funding rate from Bitget"""
+    try:
+        pair = f"{symbol}USDT_UMCBL"
+        
+        url = "https://api.bitget.com/api/mix/v1/market/current-fundRate"
+        params = {
+            'symbol': pair,
+            'productType': 'umcbl'
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()
+        if data['code'] != '00000' or 'data' not in data:
+            return None
+        
+        current_rate = float(data['data']['fundingRate']) * 100
+        
+        # Bitget doesn't provide historical easily, use current as avg
+        return {
+            'exchange': 'Bitget',
+            'current_rate': current_rate,
+            'avg_7d': current_rate
+        }
+        
+    except Exception as e:
+        print(f"Error fetching Bitget funding: {e}")
+        return None
+
+
+def get_aggregated_funding(symbol='BTC'):
+    """
+    Aggregate funding rates from all exchanges
+    Returns weighted average
+    """
+    print(f"Fetching {symbol} Funding Rates from all exchanges...")
+    
+    exchanges = [
+        get_binance_funding(symbol),
+        get_bybit_funding(symbol),
+        get_okx_funding(symbol),
+        get_bitget_funding(symbol)
+    ]
+    
+    # Filter out failed requests
+    valid_exchanges = [ex for ex in exchanges if ex is not None]
+    
+    if len(valid_exchanges) == 0:
+        print(f"  ❌ No funding data available for {symbol}")
+        return None
+    
+    # Simple average (exchanges roughly equal volume)
+    current_avg = sum(ex['current_rate'] for ex in valid_exchanges) / len(valid_exchanges)
+    avg_7d = sum(ex['avg_7d'] for ex in valid_exchanges) / len(valid_exchanges)
+    
+    print(f"  ✅ {symbol} Funding: {current_avg:+.3f}% from {len(valid_exchanges)} exchanges")
+    
+    return {
+        'symbol': symbol,
+        'current_rate': current_avg,
+        'avg_7d': avg_7d,
+        'exchanges': valid_exchanges,
+        'num_exchanges': len(valid_exchanges)
+    }
+
+
+# ========== INTERPRETATION FUNCTIONS ==========
+
+def interpret_oi(oi_data, price_change_24h):
+    """Interpret OI in context of price action"""
+    
+    if not oi_data:
+        return "⚠️ No OI data", "Data unavailable"
+    
+    oi_change = oi_data['change_24h']
+    
+    # High OI increase + price up = leveraged rally (risky)
+    if oi_change > 5 and price_change_24h > 2:
+        emoji = "🔴"
+        signal = "LEVERAGED RALLY"
+        detail = "High risk - overleveraged longs"
+    
+    # High OI increase + price down = cascade risk
+    elif oi_change > 5 and price_change_24h < -2:
+        emoji = "🔴"
+        signal = "CASCADE RISK"
+        detail = "Liquidations may accelerate"
+    
+    # OI decrease + price up = organic rally
+    elif oi_change < -3 and price_change_24h > 2:
+        emoji = "🟢"
+        signal = "ORGANIC RALLY"
+        detail = "Healthy spot-driven move"
+    
+    # OI decrease + price down = capitulation
+    elif oi_change < -3 and price_change_24h < -2:
+        emoji = "🟢"
+        signal = "CAPITULATION"
+        detail = "Leverage flushed - bottom signal"
+    
+    # Moderate changes
+    elif abs(oi_change) < 3:
+        emoji = "🟡"
+        signal = "STABLE"
+        detail = "Balanced positioning"
+    
+    else:
+        emoji = "⚪"
+        signal = "NEUTRAL"
+        detail = "No clear signal"
+    
+    return f"{emoji} {signal}", detail
+
+
+def interpret_funding(funding_data):
+    """Interpret funding rate levels"""
+    
+    if not funding_data:
+        return "⚠️ No funding data", "Data unavailable"
+    
+    rate = funding_data['current_rate']
+    avg_7d = funding_data['avg_7d']
+    
+    # Very high positive funding
+    if rate > 0.03:
+        emoji = "🔴"
+        signal = "EXTREMELY OVERHEATED"
+        detail = "Longs paying 0.03%+ per 8h - correction imminent"
+    
+    # High positive funding
+    elif rate > 0.015:
+        emoji = "🟠"
+        signal = "OVERHEATED"
+        detail = "Longs crowded - watch for reversal"
+    
+    # Moderate positive
+    elif rate > 0.005:
+        emoji = "🟡"
+        signal = "SLIGHTLY HOT"
+        detail = "Mild long bias"
+    
+    # Very negative funding
+    elif rate < -0.03:
+        emoji = "🟢"
+        signal = "EXTREME CAPITULATION"
+        detail = "Shorts paying heavy - bounce likely"
+    
+    # Negative funding
+    elif rate < -0.015:
+        emoji = "🟢"
+        signal = "OVERSOLD"
+        detail = "Short squeeze setup"
+    
+    # Moderate negative
+    elif rate < -0.005:
+        emoji = "🟡"
+        signal = "SLIGHTLY COOL"
+        detail = "Mild short bias"
+    
+    # Balanced
+    else:
+        emoji = "⚪"
+        signal = "BALANCED"
+        detail = "Neutral positioning"
+    
+    # Add 7d comparison
+    if rate > avg_7d + 0.01:
+        detail += " | Heating up vs 7d avg"
+    elif rate < avg_7d - 0.01:
+        detail += " | Cooling vs 7d avg"
+    
+    return f"{emoji} {signal}", detail
+
+
+# ========== MAIN TEST ==========
+
+if __name__ == "__main__":
+    print("=" * 70)
+    print("DERIVATIVES MONITOR - Testing")
+    print("=" * 70)
+    
+    for symbol in ['BTC', 'ETH']:
+        print(f"\n{'='*70}")
+        print(f"{symbol} DERIVATIVES")
+        print(f"{'='*70}\n")
+        
+        # Open Interest
+        oi_data = get_aggregated_oi(symbol)
+        if oi_data:
+            print(f"\n📊 OPEN INTEREST:")
+            print(f"   Total: ${oi_data['total_oi_billions']:.2f}B")
+            print(f"   24h Change: {oi_data['change_24h']:+.2f}%")
+            print(f"   Exchanges: {oi_data['num_exchanges']}")
+            
+            signal, detail = interpret_oi(oi_data, 1.5)  # Example price change
+            print(f"\n   {signal}")
+            print(f"   {detail}")
+        
+        time.sleep(2)
+        
+        # Funding Rate
+        funding_data = get_aggregated_funding(symbol)
+        if funding_data:
+            print(f"\n💰 FUNDING RATE:")
+            print(f"   Current: {funding_data['current_rate']:+.3f}%")
+            print(f"   7d Avg: {funding_data['avg_7d']:+.3f}%")
+            print(f"   Exchanges: {funding_data['num_exchanges']}")
+            
+            signal, detail = interpret_funding(funding_data)
+            print(f"\n   {signal}")
+            print(f"   {detail}")
+        
+        time.sleep(2)
