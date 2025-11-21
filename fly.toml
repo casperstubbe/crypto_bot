@@ -14,3 +14,18 @@ primary_region = "ams"
   memory = '256mb'
   cpu_kind = 'shared'
   cpus = 1
+
+# Network egress configuration
+# Allows outbound connections to these domains
+[http_service.egress]
+  allowed_domains = [
+    "api.coingecko.com",
+    "api.cryptocompare.com",
+    "min-api.cryptocompare.com",
+    "api.telegram.org",
+    "api.llama.fi",
+    "beaconcha.in",
+    "api.stlouisfed.org",      # Fed data (ADDED)
+    "mempool.space",            # Lightning Network (ADDED)
+    "api.blockchain.info"       # Bitcoin addresses (ADDED)
+  ]
