@@ -358,38 +358,6 @@ def generate_morning_report():
 
         message += "\n"
 
-     # ========== ETF FLOWS SECTION ==========
-    message += "━━━━━━━━━━━━━━━━━━━━\n"
-    message += "💼 <b>ETF FLOW TRACKER</b>\n"
-    message += "━━━━━━━━━━━━━━━━━━━━\n\n"
-
-    print("Fetching ETF flows...")
-    etf_data = get_btc_etf_flows()
-
-    if etf_data:
-        interpretation = interpret_etf_flows(etf_data)
-
-        if interpretation:
-            # Show fallback warning if using estimated data
-            if interpretation.get('is_fallback'):
-                message += "⚠️ <i>Using estimated data (API unavailable)</i>\n\n"
-
-            message += f"<b>Latest:</b> {interpretation['flow_signal']}\n"
-            message += f"   {interpretation['flow_desc']}\n\n"
-
-            message += f"<b>7-Day Avg:</b> {interpretation['trend_signal']} ({interpretation['avg_7d']:+,.0f} BTC/day)\n\n"
-
-            message += f"<b>Holdings:</b> {interpretation['holdings_signal']}\n"
-            message += f"   {interpretation['holdings_desc']}\n"
-
-            # Thesis validation
-            if interpretation['holdings_pct'] >= 12:
-                message += f"\n✅ <b>12%% THESIS TRIGGERED!</b> Scarcity phase active\n"
-
-            message += "\n"
-    else:
-        message += "⚠️ ETF data unavailable\n\n"
-
     # ========== 90-DAY STRUCTURAL DIVERGENCE ==========
     message += "━━━━━━━━━━━━━━━━━━━━\n"
     message += "📊 <b>90-DAY STRUCTURAL DIVERGENCE</b>\n"
