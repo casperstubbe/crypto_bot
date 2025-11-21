@@ -209,7 +209,35 @@ def generate_morning_report():
 
     message += "\n\n"
 
+# ========== DERIVATIVES POSITIONING ==========    ← NEW SECTION
+    message += "━━━━━━━━━━━━━━━━━━━━\n"
+    message += "💎 <b>DERIVATIVES POSITIONING</b>\n"
+    message += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
+    # Get derivatives data
+    print("Fetching derivatives data...")
+    btc_oi = get_aggregated_oi('BTC')
+    btc_funding = get_aggregated_funding('BTC')
+    eth_oi = get_aggregated_oi('ETH')
+    eth_funding = get_aggregated_funding('ETH')
+
+    # BTC
+    if btc_oi:
+        oi_signal, oi_detail = interpret_oi(btc_oi, btc_24h_change)
+        message += f"<b>BTC Open Interest:</b> ${btc_oi['total_oi_billions']:.1f}B ({btc_oi['change_24h']:+.1f}% 24h)\n"
+        message += f"   {oi_signal} - {oi_detail}\n\n"
+
+    if btc_funding:
+        funding_signal, funding_detail = interpret_funding(btc_funding)
+        message += f"<b>BTC Funding Rate:</b> {btc_funding['current_rate']:+.3f}% (7d: {btc_funding['avg_7d']:+.3f}%)\n"
+        message += f"   {funding_signal} - {funding_detail}\n\n"
+
+    # ETH
+    if eth_oi:
+        message += f"<b>ETH OI:</b> ${eth_oi['total_oi_billions']:.1f}B ({eth_oi['change_24h']:+.1f}% 24h)\n"
+
+    if eth_funding:
+        message += f"<b>ETH Funding:</b> {eth_funding['current_rate']:+.3f}%\n\n"
     
     # ========== SECTION 3: INFRASTRUCTURE STATUS ==========
     message += "━━━━━━━━━━━━━━━━━━━━\n"
