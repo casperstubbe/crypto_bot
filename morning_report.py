@@ -22,8 +22,8 @@ from divergence_reporter import (
     get_rsi_for_coin,
     get_volume_comparison,
     get_market_context,
-    calculate_structural_divergence,
     get_long_term_price_change,
+    calculate_structural_divergence
 )
 
 from derivatives_monitor import (     # ← ADD THIS ENTIRE BLOCK
